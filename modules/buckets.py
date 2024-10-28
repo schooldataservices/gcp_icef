@@ -74,6 +74,7 @@ def upload_to_bucket(destination_blob_name, local_file, bucket_name):
 #powerschool-combined 
 
 def upload_all_files_to_bucket(local_dir, bucket_name):
+    logging.info(f'Here is the local dir {local_dir}')
     for filename in os.listdir(local_dir):
         local_file_path = os.path.join(local_dir, filename)
         if os.path.isfile(local_file_path):
