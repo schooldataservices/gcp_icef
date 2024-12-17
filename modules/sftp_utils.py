@@ -5,6 +5,7 @@ import pysftp
 from queue import Queue
 from threading import Lock
 import re
+from .sftp_configs import json_file_path
 
 from airflow.exceptions import AirflowException
 
@@ -26,10 +27,11 @@ class SFTPConnection:
     default_cnopts = pysftp.CnOpts()
     default_cnopts.hostkeys = None
 
-    def __init__(self, host, username, password, max_connections=5, use_pool=True, cnopts=None):
+    def __init__(self, host, username, password, port=22, max_connections=5, use_pool=True, cnopts=None):
         self.host = host
         self.username = username
         self.password = password
+        self.port = port  # Add port
         self.max_connections = max_connections
         self.use_pool = use_pool
         self.cnopts = cnopts or self.default_cnopts
@@ -50,6 +52,7 @@ class SFTPConnection:
             host=self.host,
             username=self.username,
             password=self.password,
+            port=self.port,  # Pass the port to the connection
             cnopts=self.cnopts
         )
     
@@ -90,7 +93,6 @@ class SFTPConnection:
     @classmethod
     def load_credentials(cls):
         """Loads credentials from a JSON file."""
-        json_file_path = os.path.join(os.environ['AIRFLOW_HOME'], 'git_directory/TN_operations/powerschool-420113-db919282054b.json')
         logging.info(f"JSON file path: {json_file_path}")
         try:
             with open(json_file_path) as json_file:
@@ -117,16 +119,25 @@ class SFTPConnection:
         connections = {
             match.group(1): creds[key]
             for key in creds
-            if (match := re.match(rf"{type_}_(host|username|password)", key))
+            if (match := re.match(rf"{type_}_(host|username|password|port)", key))  # Include port in regex
         }
 
+        # Extract port, defaulting to 22 if not present
+        port = int(connections.get('port', 22))
+
         # Validate the connections
-        if any(value is None for value in connections.values()):
+        if any(key not in connections for key in ['host', 'username', 'password']):
             logging.error(f'Invalid or incomplete credentials for {type_}: {connections}')
             raise AirflowException("Invalid or incomplete credentials.")
 
         # Create and return the SFTPConnection instance
-        return cls(connections['host'], connections['username'], connections['password'], use_pool=False)
+        return cls(
+            host=connections['host'],
+            username=connections['username'],
+            password=connections['password'],
+            port=port,  # Pass the port
+            use_pool=False
+        )
 
         
 

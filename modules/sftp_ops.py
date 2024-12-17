@@ -20,12 +20,13 @@ def SFTP_conn_file_exchange(**kwargs):
     import_or_export = kwargs.get('import_or_export', None)
     target_sftp_folder_name = kwargs.get('target_sftp_folder_name', None)
     local_sftp_folder_name = kwargs.get('local_sftp_folder_name', None)
-    file_to_download = kwargs.get('file_to_download', None)
+    files_to_download = kwargs.get('files_to_download', None)
     use_pool = kwargs.get('use_pool', False)
     naming_dict = kwargs.get('naming_dict', None)
     db = kwargs.get('db', None)
     export_local_bq_replications = kwargs.get('export_local_bq_replications', None)
     project_id = kwargs.get('project_id', None)
+    
 
     # Logging for debugging
     logging.info(f"sftp_type: {sftp_type}")
@@ -33,7 +34,7 @@ def SFTP_conn_file_exchange(**kwargs):
     logging.info(f"import_or_export: {import_or_export}")
     logging.info(f"target_sftp_folder_name: {target_sftp_folder_name}")
     logging.info(f"local_sftp_folder_name: {local_sftp_folder_name}")
-    logging.info(f"file_to_download: {file_to_download}")
+    logging.info(f"files_to_download: {files_to_download}")
     logging.info(f"use_pool: {use_pool}")
     logging.info(f"naming_dict: {naming_dict}")
     logging.info(f"db: {db}")
@@ -71,7 +72,7 @@ def SFTP_conn_file_exchange(**kwargs):
         sftp_type=sftp_type,
         target_sftp_folder_name=target_sftp_folder_name,
         local_sftp_folder_name=local_sftp_folder_name,
-        singular_file=file_to_download,
+        files_to_download=files_to_download,
         naming_dict=naming_dict
     )
 
@@ -99,22 +100,52 @@ def ensure_sftp_directory_exists(sftp_conn_destination, local_sftp_folder_name):
 
 
 
+
+
 def transfer_file(sftp_conn_source, sftp_conn_destination, source_file_path, destination_file_path):
     """Helper function to transfer a single file."""
-    # Ensure source file path is valid
-    if not source_file_path:
-        logging.error(f'Source path "{source_file_path}" does not exist or is invalid.')
-        raise AirflowException(f'Source path "{source_file_path}" does not exist or is invalid.')
-
-    # Open the file on the destination SFTP server for writing
-    with sftp_conn_destination.open(destination_file_path, 'wb') as destination_file:
-        # Download the file from the source and write it to the destination
-        sftp_conn_source.getfo(source_file_path, destination_file)
-        logging.info(f'File "{source_file_path}" successfully transferred to "{destination_file_path}".')
-
+    try:
+        # Log the start of the transfer process
+        logging.info(f'Starting transfer of file from "{source_file_path}" to "{destination_file_path}".')
+        
+        if sftp_conn_source.exists(source_file_path):
+            logging.info(f"Path {source_file_path} exists.")
+        else:
+            logging.error(f"Path {source_file_path} does NOT exist.")
+            raise AirflowException(f"Path {source_file_path} does NOT exist.")
 
 
-def SFTP_file_transfer(import_or_export, sftp_conn, sftp_conn_local, sftp_type, target_sftp_folder_name, local_sftp_folder_name, singular_file=None, naming_dict=None):
+        # Validate file being in the path
+        source_file_name = os.path.basename(source_file_path) #extract filename form the source file path
+        if source_file_name not in sftp_conn_source.listdir():
+            logging.error(f'File "{source_file_name}" is invalid or empty in the path {source_file_path}.')
+            raise AirflowException(f'File "{source_file_name}" does not exist or is invalid in the {source_file_path}.')
+
+        # Log about opening destination file
+        logging.info(f'Opening destination file for writing: "{destination_file_path}".')
+        
+        # Open the file on the destination SFTP server for writing
+        with sftp_conn_destination.open(destination_file_path, 'wb') as destination_file:
+            # Download the file from the source and write it to the destination
+            logging.info(f'Initiating file read from source and write to destination.')
+            sftp_conn_source.getfo(source_file_path, destination_file)
+            logging.info(f'File "{source_file_path}" successfully transferred to "{destination_file_path}".')
+    
+    except FileNotFoundError as fnf_error:
+        logging.error(f'File not found error: {fnf_error}')
+        raise
+    except IOError as io_error:
+        logging.error(f'I/O error during file transfer: {io_error}')
+        raise
+    except Exception as e:
+        logging.error(f'An unexpected error occurred during file transfer: {e}', exc_info=True)
+        raise
+   
+
+
+
+
+def SFTP_file_transfer(import_or_export, sftp_conn, sftp_conn_local, sftp_type, target_sftp_folder_name, local_sftp_folder_name, files_to_download=None, naming_dict=None):
 
 
     # Set the source and destination connections based on import_or_export value
@@ -150,19 +181,21 @@ def SFTP_file_transfer(import_or_export, sftp_conn, sftp_conn_local, sftp_type, 
         if not dir_contents:
             logging.info(f'No files to download in folder for "{source_fldr}".')
             return
+        
+        # Handle two file transfers
+        if files_to_download:
+            for file in files_to_download:
+                if file in dir_contents:
+                    dict_name = naming_dict.get(file)
+                    source_file_path = os.path.join(source_fldr, file)
+                    destination_file_path = os.path.join(destination_fldr, dict_name)
+                    logging.info(f'Starting file transfer: "{file}" -> "{destination_file_path}".')
+                    transfer_file(sftp_conn_source, sftp_conn_destination, source_file_path, destination_file_path)
+                    logging.info(f'Successfully transferred file "{file}" to "{destination_file_path}".')
+                else:
+                    logging.error(f'File "{file}" not found in directory "{target_sftp_folder_name}".')
+                    raise AirflowException(f'File "{file}" not found.')
 
-        # Handle singular file transfer
-        if singular_file:
-            if singular_file in dir_contents:
-                dict_name = naming_dict.get(singular_file)
-                source_file_path = os.path.join(source_fldr, singular_file)
-                destination_file_path = os.path.join(destination_fldr, dict_name)
-                logging.info(f'Starting singular file transfer: "{singular_file}" -> "{destination_file_path}".')
-                transfer_file(sftp_conn_source, sftp_conn_destination, source_file_path, destination_file_path)
-                logging.info(f'Successfully transferred file "{singular_file}" to "{destination_file_path}".')
-            else:
-                logging.error(f'File "{singular_file}" not found in directory "{target_sftp_folder_name}".')
-                raise AirflowException(f'File "{singular_file}" not found.')
 
         else:
             # Handle batch file transfer
@@ -181,7 +214,7 @@ def SFTP_file_transfer(import_or_export, sftp_conn, sftp_conn_local, sftp_type, 
         raise AirflowException(f'Error during SFTP operation: {e}')
 
     except Exception as e:
-        logging.error(f'An error occurred during file replication {singular_file} attempt to {destination_fldr}: {e}')
+        logging.error(f'An error occurred during file replication {files_to_download} attempt to {destination_fldr}: {e}')
         raise AirflowException
     
     logging.info(f'Finished SFTP file transfer from "{source_fldr}" to "{destination_fldr}')
