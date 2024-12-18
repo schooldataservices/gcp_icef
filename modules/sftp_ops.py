@@ -105,8 +105,6 @@ def ensure_sftp_directory_exists(sftp_conn_destination, local_sftp_folder_name):
 def transfer_file(sftp_conn_source, sftp_conn_destination, source_file_path, destination_file_path):
     """Helper function to transfer a single file."""
     try:
-        # Log the start of the transfer process
-        logging.info(f'Starting transfer of file from "{source_file_path}" to "{destination_file_path}".')
         
         if sftp_conn_source.exists(source_file_path):
             logging.info(f"Path {source_file_path} exists.")
@@ -127,7 +125,6 @@ def transfer_file(sftp_conn_source, sftp_conn_destination, source_file_path, des
         # Open the file on the destination SFTP server for writing
         with sftp_conn_destination.open(destination_file_path, 'wb') as destination_file:
             # Download the file from the source and write it to the destination
-            logging.info(f'Initiating file read from source and write to destination.')
             sftp_conn_source.getfo(source_file_path, destination_file)
             logging.info(f'File "{source_file_path}" successfully transferred to "{destination_file_path}".')
     

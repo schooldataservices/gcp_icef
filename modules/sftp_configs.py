@@ -40,7 +40,7 @@ sftp_configs = [
         'local_sftp_type': 'local_sftp',
         'import_or_export': 'import',
         'target_sftp_folder_name': '/exports/Current_Year/',
-        'local_sftp_folder_name': '/imports', 
+        'local_sftp_folder_name': '/iready', 
         'files_to_download': ['diagnostic_results_ela_CONFIDENTIAL.csv', 'diagnostic_results_math_CONFIDENTIAL.csv'],
         'naming_dict': iready_dictionary,  
         'export_local_bq_replications': False,
