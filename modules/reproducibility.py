@@ -1,4 +1,5 @@
 import pandas as pd
+import re
 
 
 
@@ -31,12 +32,16 @@ def read_file(file_path):
         raise RuntimeError(f"Error reading file {file_path}: {e}") from e
 
 def pre_processing(df):
-        
-        df = df.fillna('')
-        df = df.astype(str)
-        df.columns = [col.replace('.', '_') for col in df.columns]
-
-        return(df)
+    # Fill NaN values with empty strings
+    df = df.fillna('')
+    # Convert all data to strings
+    df = df.astype(str)
+    # Clean column names
+    df.columns = [
+        re.sub(r'\(.*?\)', '', col).replace('.', '_').strip() 
+        for col in df.columns
+    ]
+    return df
 
 # ----------------------------------------------------
 

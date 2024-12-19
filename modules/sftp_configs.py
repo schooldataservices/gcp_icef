@@ -37,7 +37,7 @@ sftp_configs = [
 
     {
         'sftp_type': 'iready_import',
-        'local_sftp_type': 'local_sftp',
+        'local_sftp_type': 'local_sftp', #must follow naming convention in .json file
         'import_or_export': 'import',
         'target_sftp_folder_name': '/exports/Current_Year/',
         'local_sftp_folder_name': '/iready', 
