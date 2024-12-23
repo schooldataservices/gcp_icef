@@ -1,5 +1,7 @@
 import os
-json_file_path =  '/home/g2015samtaylor/icef-437920.json'
+# json_file_path =  '/home/g2015samtaylor/icef-437920.json'
+#docker path temp
+json_file_path = os.getenv("JSON_FILE_PATH", "/app/icef-437920.json")
 
 #All BQ tables that are begin queryed are the keys. 
 #How they are saved in the local dir are the values
