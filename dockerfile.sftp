@@ -40,3 +40,4 @@ CMD ["python", "/app/sftp_operations.py"]
 #     -v /home/g2015samtaylor/airflow/git_directory/SFTP_Migrations/logs/sftp_testing.log:/app/logs/sftp_testing.log \
 #     sftp_migrations
 
+

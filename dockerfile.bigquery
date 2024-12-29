@@ -1,0 +1,28 @@
+# Use a base Python image
+FROM python:3.9-slim
+
+# Set the working directory inside the container
+WORKDIR /app
+
+# Install any required dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy your code into the container
+COPY . .
+
+# Command to run your script (you can customize this as per your needs)
+ENTRYPOINT ["python", "bigquery_operations.py"]
+
+
+# docker run --rm \
+#   -e SFTP_FOLDER_NAME=illuminate \
+#   -v /home/icef/illuminate:/home/icef/illuminate \
+#   -v /home/g2015samtaylor/icef-437920.json:/home/g2015samtaylor/icef-437920.json \
+#   upload-to-bigquery > logs.txt 2>&1
+
+# docker run --rm \
+#   -e SFTP_FOLDER_NAME=powerschool \
+#   -v /home/icef/powerschool:/home/icef/powerschool \
+#   -v /home/g2015samtaylor/icef-437920.json:/home/g2015samtaylor/icef-437920.json \
+#   upload-to-bigquery > logs.txt 2>&1

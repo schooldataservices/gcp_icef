@@ -3,3 +3,6 @@ pandas>=2.2.3
 pandas_gbq>=0.24.0
 protobuf>=3.6.1
 pysftp>=0.2.9
+google-cloud-storage>=2.0.0
+gcsfs
+
