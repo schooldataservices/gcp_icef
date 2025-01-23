@@ -7,7 +7,7 @@ json_file_path = os.getenv("JSON_FILE_PATH", "/app/icef-437920.json")
 #How they are saved in the local dir are the values
 iready_dictionary = {'diagnostic_results_ela_CONFIDENTIAL.csv':'diagnostic_results_ela.csv',
                     'diagnostic_results_math_CONFIDENTIAL.csv':'diagnostic_results_math.csv',
-                    
+                    'iready_instruction_by_lesson_math_CONFIDENTIAL.csv': 'iready_instruction_by_lesson_math.csv'
                     }
 
 #make sure to put the extension names on the files, and have the naming convention of the variables exact
@@ -43,7 +43,7 @@ sftp_configs = [
         'import_or_export': 'import',
         'target_sftp_folder_name': '/exports/Current_Year/',
         'local_sftp_folder_name': '/iready', 
-        'files_to_download': ['diagnostic_results_ela_CONFIDENTIAL.csv', 'diagnostic_results_math_CONFIDENTIAL.csv'],
+        'files_to_download': ['diagnostic_results_ela_CONFIDENTIAL.csv', 'diagnostic_results_math_CONFIDENTIAL.csv', 'iready_instruction_by_lesson_math_CONFIDENTIAL.csv'],
         'naming_dict': iready_dictionary,  
         'export_local_bq_replications': False,
         'project_id':'icef-437920'

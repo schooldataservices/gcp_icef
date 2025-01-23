@@ -38,6 +38,6 @@ CMD ["python", "/app/sftp_operations.py"]
 # sudo docker run --network host \
 #     -v /home/g2015samtaylor/icef-437920.json:/app/icef-437920.json \
 #     -v /home/g2015samtaylor/airflow/git_directory/SFTP_Migrations/logs/sftp_testing.log:/app/logs/sftp_testing.log \
-#     sftp_migrations
+#     sftp-migrations
 
 
