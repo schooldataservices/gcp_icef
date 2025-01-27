@@ -152,7 +152,8 @@ def upload_to_bq_table(cloud_storage_uri, project_id, db, table_name, location, 
         pandas_gbq.to_gbq(df, table_id, project_id, if_exists=append_or_replace, location=location)
         logging.info(f'Succesfully created table  {table_id} in the location {location} and sent data')
     except Exception as e:
-        logging.info(f'Unable to create table {table_id} due to error- {e}')
+        logging.error(f'Unable to create table {table_id} due to error- {e}')
+     
 
 
 
