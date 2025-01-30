@@ -104,7 +104,13 @@ def list_files_in_bucket(bucket_name):
     return(file_names)
 
 
-
+def map_column_types(df, dtype_mapping):
+    bq_schema = []
+    for column, dtype in df.dtypes.items():
+        # Check the dtype in the mapping and add to the BigQuery schema
+        bq_type = dtype_mapping.get(str(dtype), 'STRING')  # Default to STRING if type not found
+        bq_schema.append({'name': column, 'type': bq_type})
+    return bq_schema
 
 
 
@@ -117,14 +123,13 @@ def upload_to_bq_table(cloud_storage_uri, project_id, db, table_name, location, 
   
     # Read the CSV file from Cloud Storage into a Pandas DataFrame
     try:
-        df = read_file(cloud_storage_uri) #here is where the error is occuring 'gs://eisbucket-iotaschools-1/EIS_prior_schools.csv'
+        df = read_file(cloud_storage_uri) 
         df = pre_processing(df)
         
 
     except pd.errors.ParserError as e:
         logging.error(f'Unable to read {cloud_storage_uri} due to parsing error: \n {e}')
       
-
     except pd.errors.EmptyDataError as e:
         logging.error(f'Unable to read {cloud_storage_uri} due to empty data: \n {e}')
         
@@ -148,8 +153,22 @@ def upload_to_bq_table(cloud_storage_uri, project_id, db, table_name, location, 
         print(f'Attempting to create table {table_id} and send data for the first time')
         logging.info(f'Attempting to create table {table_id} and send data for the first time')
 
+    # Map Pandas DataFrame columns to BigQuery data types
+    dtype_mapping = {
+        'int64': 'INTEGER',
+        'float64': 'FLOAT',
+        'object': 'STRING',
+        'bool': 'BOOLEAN',
+        'datetime64[ns]': 'TIMESTAMP',
+        'timedelta[ns]': 'TIME',
+    }
+
+    # Generate BigQuery schema from DataFrame dtypes
+    bq_schema = map_column_types(df, dtype_mapping)
+    # print(f'Here is the BQ schema {bq_schema}')
+
     try:
-        pandas_gbq.to_gbq(df, table_id, project_id, if_exists=append_or_replace, location=location)
+        pandas_gbq.to_gbq(df, table_id, project_id, if_exists=append_or_replace, location=location, table_schema=bq_schema)
         logging.info(f'Succesfully created table  {table_id} in the location {location} and sent data')
     except Exception as e:
         logging.error(f'Unable to create table {table_id} due to error- {e}')

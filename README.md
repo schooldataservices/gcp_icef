@@ -15,7 +15,7 @@ The process is packaged into a Docker container to simplify deployment and execu
 
 #### Required Libraries
 
-1. **pysftp**: Used for interacting with the SFTP server.
+1. **pysftp**: Used for interacting with the SFTP server, or local folder
 2. **pandas_gbq**: Used for uploading data to Google BigQuery.
 3. **pandas**: For data manipulation.
 4. **logging**: For generating logs and tracking execution.
@@ -73,9 +73,9 @@ def upload_to_bigquery():
 
     # Create instance for BigQuery operation
     instance = Create(
-                project_id='icef-437920',
+                project_id='projectname-437920',
                 location='us-west1',
-                bucket=f'{SFTP_folder_name}bucket-icefschools-1',
+                bucket=f'{SFTP_folder_name}bucket-schools-1',
                 local_dir=local_dir,
                 db=SFTP_folder_name,
                 append_or_replace='replace',
@@ -157,7 +157,7 @@ google-auth
 
 ### Summary
 
-This pipeline automates the process of fetching data from an SFTP server, checking the schema, and uploading the data to Google BigQuery. The pipeline is fully containerized using Docker, making it easy to deploy and run across different environments while ensuring that the necessary environment variables are provided for authentication and data handling.
+This pipeline automates the process of fetching data from an SFTP server or local folder, checking the schema, and uploading the data to Google BigQuery. The pipeline is fully containerized using Docker, making it easy to deploy and run across different environments while ensuring that the necessary environment variables are provided for authentication and data handling.
 
 ### Documentation for Data Pipeline: SFTP Operations
 

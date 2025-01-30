@@ -33,9 +33,11 @@ def read_file(file_path):
 
 def pre_processing(df):
     # Fill NaN values with empty strings
-    df = df.fillna('')
+    # df = df.fillna('')
+
     # Convert all data to strings
-    df = df.astype(str)
+    # df = df.astype(str)
+
     # Clean column names
     df.columns = [
         re.sub(r'\(.*?\)', '', col).replace('.', '_').strip() 
