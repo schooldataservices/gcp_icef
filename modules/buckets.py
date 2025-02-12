@@ -172,6 +172,7 @@ def upload_to_bq_table(cloud_storage_uri, project_id, db, table_name, location, 
         logging.info(f'Succesfully created table  {table_id} in the location {location} and sent data')
     except Exception as e:
         logging.error(f'Unable to create table {table_id} due to error- {e}')
+        raise
      
 
 
