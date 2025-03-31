@@ -3,7 +3,7 @@
 ### Overview
 This Python data pipeline performs the following steps:
 
-1. **SFTP File Fetch**: Fetches files from an SFTP server.
+1. **SFTP/Local File Fetch**: Fetches files from an SFTP server, or local storage
 2. **Schema Check**: Validates the schema of the files.
 3. **BigQuery Upload**: Uploads the processed files to Google BigQuery using a specified environment and credentials.
 
