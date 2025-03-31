@@ -9,3 +9,4 @@ SFTP_folders
 bq_replications/
 clever_iota_file_transfer/
 savva_iota_file_transfer/
+venv/
