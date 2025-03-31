@@ -68,6 +68,7 @@ def upload_to_bucket(destination_blob_name, local_file, bucket_name):
     except Exception as e:
         print(e)
         logging.info(f'Error uploading {local_file} to the {bucket_name} due to {e}')
+        raise
 
 # The system cannot find the path specified: 'S:\\SFTP\\powerschool-combined'
 #In upload_all_files_to_bucket the sftp folder powerschool_combined gets changed to 
@@ -113,6 +114,14 @@ def map_column_types(df, dtype_mapping):
     return bq_schema
 
 
+#Function to remove white space, and replace with underscores
+def clean_column_names(df):
+    try:
+        df.columns = [re.sub(r'\s+', '_', col).strip().lower() for col in df.columns]
+        logging.info('Column names cleaned of spaces')
+        return df
+    except Exception as e:
+        logging.error(f'Error cleaning column names due to {e}')
 
 
 #Upload to BiqQuery using Pandas_GBQ. 
@@ -125,16 +134,20 @@ def upload_to_bq_table(cloud_storage_uri, project_id, db, table_name, location, 
     try:
         df = read_file(cloud_storage_uri) 
         df = pre_processing(df)
+        df = clean_column_names(df)
         
 
     except pd.errors.ParserError as e:
         logging.error(f'Unable to read {cloud_storage_uri} due to parsing error: \n {e}')
+        raise
       
     except pd.errors.EmptyDataError as e:
         logging.error(f'Unable to read {cloud_storage_uri} due to empty data: \n {e}')
+        raise
         
     except Exception as e:
         logging.error(f'Here is the error after reading in cloud storage uri : \n {e}')
+        raise
 
 
     logging.info(f'Here is the cloud uri that was read {cloud_storage_uri}')
