@@ -31,18 +31,20 @@ def read_file(file_path):
         # Raise a custom error with details
         raise RuntimeError(f"Error reading file {file_path}: {e}") from e
 
+
 def pre_processing(df):
-    # Fill NaN values with empty strings
-    # df = df.fillna('')
-
-    # Convert all data to strings
-    # df = df.astype(str)
-
-    # Clean column names
-    df.columns = [
-        re.sub(r'\(.*?\)', '', col).replace('.', '_').strip() 
-        for col in df.columns
+    # Remove parentheses and content inside
+    cleaned_cols = [re.sub(r'\(.*?\)', '', col) for col in df.columns]
+    
+    # Replace all characters except letters, numbers, and underscores with underscores
+    cleaned_cols = [
+        re.sub(r'[^A-Za-z0-9_]', '_', col) for col in cleaned_cols
     ]
+    
+    # Optionally, lowercase and strip leading/trailing underscores
+    cleaned_cols = [col.lower().strip('_') for col in cleaned_cols]
+    
+    df.columns = cleaned_cols
     return df
 
 # ----------------------------------------------------
