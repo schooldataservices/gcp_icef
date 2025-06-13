@@ -21,9 +21,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the project files into the container
 COPY . /app
 
-# Create a logs directory for the pipeline
-RUN mkdir -p /app/logs
-
 # Set environment variables (optional: can be used to configure Airflow or other services)
 #ENV AIRFLOW_HOME=/app/airflow
 

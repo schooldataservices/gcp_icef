@@ -12,9 +12,6 @@ from modules.sftp_utils import *
 from modules.sftp_configs import *
 from modules.sftp_ops import *
 
-# Configure the path for logs inside the container
-log_file = '/app/logs/sftp_testing.log'  # Modify this if your log file should be mounted elsewhere
-
 # Ensure proper logging setup
 for handler in logging.root.handlers[:]:
     logging.root.removeHandler(handler)
@@ -26,7 +23,6 @@ logging.basicConfig(
     datefmt='%d-%b-%y %H:%M:%S',
     handlers=[
         logging.StreamHandler(sys.stdout),  # Log to Airflow UI via stdout
-        logging.FileHandler(log_file)      # Log to a file inside the container
     ]
 )
 

@@ -2,6 +2,7 @@ import pandas as pd
 import pandas_gbq
 import pysftp
 import logging
+from google.cloud import storage
 import time
 import os
 import io
@@ -26,6 +27,8 @@ def SFTP_conn_file_exchange(**kwargs):
     db = kwargs.get('db', None)
     export_local_bq_replications = kwargs.get('export_local_bq_replications', None)
     project_id = kwargs.get('project_id', None)
+    bucket_name = kwargs.get('bucket_name', None)
+    destination_blob_name = kwargs.get('destination_blob_name', None)
     
 
     # Logging for debugging
@@ -41,16 +44,21 @@ def SFTP_conn_file_exchange(**kwargs):
     logging.info(f"export_local_bq_replications: {export_local_bq_replications}")
     logging.info(f"use_pool: {use_pool}")
     logging.info(f"project_id: {project_id}")
+    logging.info(f"bucket_name: {bucket_name}")
+    logging.info(f"destination_blob_name: {destination_blob_name}")
 
 
     #specific conns retrieved
     sftp_conn_obj = SFTPConnection.setup_sftp_connection(type_=sftp_type)
     sftp_conn = sftp_conn_obj.get_connection()
     logging.info(f'\n\n\nSFTP singular connection established successfully for {sftp_type}')
-  
-    sftp_conn_local_obj = SFTPConnection.setup_sftp_connection(type_=local_sftp_type)
-    sftp_conn_local = sftp_conn_local_obj.get_connection()
-    logging.info(f'\n\n\nSFTP singular connection established successfully for {local_sftp_type}')
+    
+    if local_sftp_folder_name:
+        sftp_conn_local_obj = SFTPConnection.setup_sftp_connection(type_=local_sftp_type)
+        sftp_conn_local = sftp_conn_local_obj.get_connection()
+        logging.info(f'\n\n\nSFTP singular connection established successfully for {local_sftp_type}')
+    else:
+        pass
 
                     
     #Bring in local bq replications to local_sftp before sending to vendor
@@ -72,9 +80,12 @@ def SFTP_conn_file_exchange(**kwargs):
         sftp_type=sftp_type,
         target_sftp_folder_name=target_sftp_folder_name,
         local_sftp_folder_name=local_sftp_folder_name,
+        bucket_name=bucket_name,
+        destination_blob_name=destination_blob_name,
         files_to_download=files_to_download,
         naming_dict=naming_dict
     )
+
 
     # finally:
     try:
@@ -138,21 +149,78 @@ def transfer_file(sftp_conn_source, sftp_conn_destination, source_file_path, des
         logging.error(f'An unexpected error occurred during file transfer: {e}', exc_info=True)
         raise
    
+def transfer_file_to_bucket(sftp_conn, source_file_path, bucket_name, destination_blob_name):
+    """
+    Transfers a file from an SFTP server directly to a GCP bucket.
+
+    Parameters:
+    - sftp_conn: pysftp.Connection object for the SFTP connection.
+    - source_file_path: Path to the file on the SFTP server.
+    - bucket_name: Name of the GCP bucket.
+    - destination_blob_name: Name of the destination blob in the GCP bucket.
+    """
+    try:
+        # Check if the file exists on the SFTP server
+        if not sftp_conn.exists(source_file_path):
+            logging.error(f"Source file '{source_file_path}' does not exist on the SFTP server.")
+            raise FileNotFoundError(f"Source file '{source_file_path}' does not exist on the SFTP server.")
+
+        # Open the file on the SFTP server for reading
+        with sftp_conn.open(source_file_path, 'rb') as sftp_file:
+            logging.info(f"Opened file '{source_file_path}' on SFTP server for reading.")
+
+            # Initialize the GCP storage client
+            storage_client = storage.Client()
+
+            # Get the bucket
+            bucket = storage_client.bucket(bucket_name)
+
+            # Create a blob object for the destination file
+            blob = bucket.blob(destination_blob_name)
+
+            # Upload the file directly from the SFTP stream
+            blob.upload_from_file(sftp_file, rewind=True)
+            logging.info(f"Successfully transferred file '{source_file_path}' to GCP bucket '{bucket_name}' as '{destination_blob_name}'.")
+
+    except Exception as e:
+        logging.error(f"Error transferring file '{source_file_path}' to GCP bucket '{bucket_name}': {str(e)}")
+        raise
 
 
 
 
-def SFTP_file_transfer(import_or_export, sftp_conn, sftp_conn_local, sftp_type, target_sftp_folder_name, local_sftp_folder_name, files_to_download=None, naming_dict=None):
+def SFTP_file_transfer(import_or_export, 
+                       sftp_conn, 
+                       sftp_conn_local, 
+                       sftp_type, 
+                       target_sftp_folder_name, 
+                       local_sftp_folder_name=None,
+                       bucket_name = None,
+                       destination_blob_name=None,
+                       files_to_download=None, 
+                       naming_dict=None):
 
 
     # Set the source and destination connections based on import_or_export value
     if import_or_export == 'import':
-        logging.info(f'Attempting to import SFTP files to local for {sftp_type}')
-        sftp_conn_source = sftp_conn                      # Remote SFTP as the source
-        sftp_conn_destination = sftp_conn_local           # Local SFTP as the destination
-        source_fldr = target_sftp_folder_name
-        destination_fldr = local_sftp_folder_name
+        logging.info(f'Attempting to import SFTP files to local or GCP bucket for {sftp_type}')
+        sftp_conn_source = sftp_conn  # Remote SFTP as the source
 
+        # Determine the destination based on the provided parameters
+        if local_sftp_folder_name:
+            logging.info('Destination is a local SFTP folder.')
+            sftp_conn_destination = sftp_conn_local  # Local SFTP as the destination
+            destination_fldr = local_sftp_folder_name
+        elif bucket_name:
+            logging.info('Destination is a GCP bucket.')
+            sftp_conn_destination = None  # No SFTP destination for GCP bucket
+            destination_fldr = bucket_name  # Use bucket_name as the destination
+        else:
+            raise ValueError("Either 'local_sftp_folder_name' or 'bucket_name' must be provided as the destination.")
+
+        source_fldr = target_sftp_folder_name
+
+    #Purely local based to other SFTP currently
     elif import_or_export == 'export':
         logging.info(f'Attempting to export SFTP files to remote for {sftp_type}')
         sftp_conn_source = sftp_conn_local                # Local SFTP as the source
@@ -187,8 +255,11 @@ def SFTP_file_transfer(import_or_export, sftp_conn, sftp_conn_local, sftp_type, 
                     source_file_path = os.path.join(source_fldr, file)
                     destination_file_path = os.path.join(destination_fldr, dict_name)
                     logging.info(f'Starting file transfer: "{file}" -> "{destination_file_path}".')
-                    transfer_file(sftp_conn_source, sftp_conn_destination, source_file_path, destination_file_path)
-                    logging.info(f'Successfully transferred file "{file}" to "{destination_file_path}".')
+                    # transfer_file(sftp_conn_source, sftp_conn_destination, source_file_path, destination_file_path)
+                    
+                    transfer_file_to_bucket(sftp_conn_source, source_file_path, bucket_name, destination_blob_name)
+
+                    logging.info(f'Successfully transferred file "{file}" to "{bucket_name}".')
                 else:
                     logging.error(f'File "{file}" not found in directory "{target_sftp_folder_name}".')
                     raise AirflowException(f'File "{file}" not found.')
@@ -201,8 +272,11 @@ def SFTP_file_transfer(import_or_export, sftp_conn, sftp_conn_local, sftp_type, 
                 source_file_path = os.path.join(source_fldr, file_name)
                 destination_file_path = os.path.join(destination_fldr, file_name)
                 logging.info(f'Transferring file "{file_name}" to "{destination_file_path}".')
-                transfer_file(sftp_conn_source, sftp_conn_destination, source_file_path, destination_file_path)
-                logging.info(f'Successfully transferred file "{file_name}" to "{destination_file_path}".')
+                # transfer_file(sftp_conn_source, sftp_conn_destination, source_file_path, destination_file_path)
+                # logging.info(f'Successfully transferred file "{file_name}" to "{destination_file_path}".')
+                
+                transfer_file_to_bucket(sftp_conn_source, source_file_path, bucket_name, destination_blob_name)
+                logging.info(f'Successfully transferred file "{file}" to "{bucket_name}".')
 
             logging.info(f'All files in folder "{source_fldr}" transferred to destination SFTP.')
 
