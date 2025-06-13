@@ -114,16 +114,6 @@ def map_column_types(df, dtype_mapping):
     return bq_schema
 
 
-#Function to remove white space, and replace with underscores
-def clean_column_names(df):
-    try:
-        df.columns = [re.sub(r'\s+', '_', col).strip().lower() for col in df.columns]
-        logging.info('Column names cleaned of spaces')
-        return df
-    except Exception as e:
-        logging.error(f'Error cleaning column names due to {e}')
-
-
 #Upload to BiqQuery using Pandas_GBQ. 
 #Schema is created based on pandas dtypes. 
         
@@ -134,7 +124,7 @@ def upload_to_bq_table(cloud_storage_uri, project_id, db, table_name, location, 
     try:
         df = read_file(cloud_storage_uri) 
         df = pre_processing(df)
-        df = clean_column_names(df)
+
         
 
     except pd.errors.ParserError as e:
