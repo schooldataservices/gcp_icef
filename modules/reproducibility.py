@@ -1,6 +1,6 @@
 import pandas as pd
 import re
-
+import logging
 
 
 def read_file(file_path):
@@ -45,6 +45,9 @@ def pre_processing(df):
     cleaned_cols = [col.lower().strip('_') for col in cleaned_cols]
     
     df.columns = cleaned_cols
+
+    logging.info(f'Here are the cleaned column names {cleaned_cols}')
+
     return df
 
 # ----------------------------------------------------
