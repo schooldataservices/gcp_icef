@@ -14,24 +14,3 @@ COPY . .
 # Command to run your script (you can customize this as per your needs)
 ENTRYPOINT ["python", "bigquery_operations.py"]
 
-
-# docker run --rm \
-#   -e SFTP_FOLDER_NAME=illuminate \
-#   -v /home/icef/illuminate:/home/icef/illuminate \
-#   -v /home/g2015samtaylor/icef-437920.json:/home/g2015samtaylor/icef-437920.json \
-#   upload-to-bigquery > logs.txt 2>&1
-
-# docker run --rm \
-#   -e SFTP_FOLDER_NAME=powerschool \
-#   -v /home/icef/powerschool:/home/icef/powerschool \
-#   -v /home/g2015samtaylor/icef-437920.json:/home/g2015samtaylor/icef-437920.json \
-#   upload-to-bigquery > logs.txt 2>&1
-
-
-# docker run --rm \
-#   -e SFTP_FOLDER_NAME="temp" \
-#   -e LOCAL_DIR="/home/sam/git_directory/ICEF/ps_views/temp/" \
-#   -e GOOGLE_APPLICATION_CREDENTIALS="/home/sam/icef-437920.json" \
-#   -v /home/sam/git_directory/ICEF/ps_views/temp/:/home/sam/git_directory/ICEF/ps_views/temp/ \
-#   -v /home/g2015samtaylor/icef-437920.json:/home/sam/icef-437920.json \
-#   gcr.io/icef-437920/upload-to-bigquery:latest > logs.txt 2>&1

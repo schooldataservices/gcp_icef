@@ -38,15 +38,18 @@ def upload_to_bigquery():
     logging.info('\n\n-------------New Big Query Logging Instance')
 
     # Get the environment variables set by the DockerOperator
-    SFTP_folder_name = os.environ.get("SFTP_FOLDER_NAME")
+    dataset_name = os.environ.get("dataset_name")
     local_dir = os.environ.get("LOCAL_DIR")
-     # Get the GOOGLE_APPLICATION_CREDENTIALS environment variable from the container
     google_application_credentials_path = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
-    print(f'Here is the google_application_credentials_path {google_application_credentials_path}')
-    
-    if not SFTP_folder_name or not local_dir:
-        logging.error("Environment variables SFTP_FOLDER_NAME or LOCAL_DIR are not set!")
-        print("Environment variables SFTP_FOLDER_NAME or LOCAL_DIR are not set!")
+
+    logging.info(f"ENV VARS:\n"
+             f"GOOGLE_APPLICATION_CREDENTIALS={google_application_credentials_path}\n"
+             f"dataset_name={dataset_name}\n"
+             f"LOCAL_DIR={local_dir}")
+
+    if not dataset_name:
+        logging.error("Environment variables dataset_name is not set!")
+        print("Environment variables dataset_name is not set!")
         return
     
     if not google_application_credentials_path:
@@ -55,39 +58,29 @@ def upload_to_bigquery():
         return
 
     logging.info(f"Using Google Application Credentials: {google_application_credentials_path}")
-    logging.info(f"Processing folder: {SFTP_folder_name}")
+    logging.info(f"Processing folder: {dataset_name}")
     logging.info(f"Local directory: {local_dir}")
 
     # Call the initial schema check
-    SFTP_folder_name = initial_schema_check(SFTP_folder_name)
-    logging.info(f"Processing folder: {SFTP_folder_name}")
+    dataset_name = initial_schema_check(dataset_name)
+    logging.info(f"Processing folder: {dataset_name}")
 
     # Create instance for BigQuery operation
     instance = Create(
                 project_id='icef-437920',
                 location='us-west1',
-                bucket=f'{SFTP_folder_name}bucket-icefschools-1',
+                bucket=f'{dataset_name}bucket-icefschools-1',
                 local_dir=local_dir,
-                db=SFTP_folder_name,
+                dataset_name=dataset_name,
                 append_or_replace='replace',
                 )
     
     instance.process()  # Pass SFTP files into Bucket & then into BigQuery tables
     logging.info('Process has reached the end\n\n')
 
-
-#Will run locally by bringing in os.environ and mounting json file and local path
-# os.environ["SFTP_FOLDER_NAME"] = "illuminate"
-# os.environ["LOCAL_DIR"] = '/home/g2015samtaylor/illuminate'
-# os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/g2015samtaylor/icef-437920.json"
-
-# docker run --rm \
-#   -e SFTP_FOLDER_NAME=illuminate \
-#   -v /home/icef/illuminate:/home/g2015samtaylor/illuminate \
-#   -v /home/g2015samtaylor/icef-437920.json:/home/g2015samtaylor/icef-437920.json \
-#   upload-to-bigquery > logs.txt 2>&1
-    
     
 # Call the function
 upload_to_bigquery()
 
+
+#function upload_all_files_to_bucket needs to become optional within the class. Only if local_dir has a value then that should run 

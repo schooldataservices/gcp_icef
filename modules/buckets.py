@@ -10,10 +10,10 @@ from .reproducibility import *
 
 
 
-def create_bucket(bucket_name, location, local_dir, storage_class = 'STANDARD'):
+def create_bucket(bucket_name, location, dataset_name, storage_class = 'STANDARD'):
 
     #make sure bucket_name and folder_name comply with GCS schema
-    initial_schema_check(local_dir)
+    initial_schema_check(dataset_name)
 
 
     storage_client = storage.Client()
@@ -70,9 +70,7 @@ def upload_to_bucket(destination_blob_name, local_file, bucket_name):
         logging.info(f'Error uploading {local_file} to the {bucket_name} due to {e}')
         raise
 
-# The system cannot find the path specified: 'S:\\SFTP\\powerschool-combined'
-#In upload_all_files_to_bucket the sftp folder powerschool_combined gets changed to 
-#powerschool-combined 
+
 
 def upload_all_files_to_bucket(local_dir, bucket_name):
     logging.info(f'Here is the local dir {local_dir}')
@@ -117,7 +115,7 @@ def map_column_types(df, dtype_mapping):
 #Upload to BiqQuery using Pandas_GBQ. 
 #Schema is created based on pandas dtypes. 
         
-def upload_to_bq_table(cloud_storage_uri, project_id, db, table_name, location, append_or_replace):
+def upload_to_bq_table(cloud_storage_uri, project_id, dataset_name, table_name, location, append_or_replace):
 
   
     # Read the CSV file from Cloud Storage into a Pandas DataFrame
@@ -144,8 +142,8 @@ def upload_to_bq_table(cloud_storage_uri, project_id, db, table_name, location, 
 
     client = bigquery.Client()
 
-    # project, DB, table name
-    table_id = f'{project_id}.{db}.{table_name}'
+    # project, dataset, table name
+    table_id = f'{project_id}.{dataset_name}.{table_name}'
 
     try:
         client.get_table(table_id)
@@ -186,14 +184,15 @@ def upload_to_bq_table(cloud_storage_uri, project_id, db, table_name, location, 
    
 class Create:
 
-    def __init__(self, bucket, local_dir, project_id, db, append_or_replace, location=None):
+    def __init__(self, bucket, project_id, dataset_name, append_or_replace, location=None, local_dir=None):
         
         self.location = location
         self.bucket = bucket
         self.local_dir = local_dir
         self.project_id = project_id
-        self.db = db
+        self.dataset_name = dataset_name
         self.append_or_replace = append_or_replace
+        self.local_dir = local_dir
 
 
     def process(self):
@@ -201,12 +200,14 @@ class Create:
         logging.info('New file processing started\n')
     
         #Create the bucket, and upload to that bucket. If already created, bypass
-        create_bucket(self.bucket, self.location, self.local_dir)
+        create_bucket(self.bucket, self.location, self.dataset_name)
   
         #Upload all files to bucket based on self.local_dir, demonstrates if overwritten or newfile for all files in logging
-        upload_all_files_to_bucket(self.local_dir, self.bucket)
-
-        print(self.bucket)
+        if self.local_dir != '':
+            logging.info(f'Local dir is established as {self.local_dir}')
+            upload_all_files_to_bucket(self.local_dir, self.bucket)
+        else:
+            logging.info(f'No local directory provided, skipping local directory upload to {self.bucket}')
 
         #Get file_names to upload to BQ as their table name
         file_names = list_files_in_bucket(self.bucket)
@@ -214,31 +215,18 @@ class Create:
         file_names_without_extension = [remove_extension_from_file(file_name) for file_name in file_names]
 
         
-        
-
         for file_name, table_name in zip(file_names, file_names_without_extension):
             logging.info(f'Attempting to upload {file_name} into the table {table_name}')
             upload_to_bq_table(
                 cloud_storage_uri=f'gs://{self.bucket}/{file_name}',
                 project_id=self.project_id,
-                db=self.db,
+                dataset_name=self.dataset_name,
                 table_name=table_name,
                 location=self.location,
                 append_or_replace=self.append_or_replace
             )
-
-# 'EIS_prior_schoolsbucket-iotaschools-1' this is the bucket at some point not sure why under global variables
          
             
-
-
-
-
-
-
-
-
-
 
 def download_from_bucket(source_blob_name, destination_file_path, bucket_name):
 
@@ -260,22 +248,3 @@ def download_from_bucket(source_blob_name, destination_file_path, bucket_name):
     except Exception as e:
         print(e)
 
-
-
-
-        # #Could implement sql query here if did not want to be in class instance
-
-        # try:
-        #     logging.info(f'Calling SQL query on {self.project_id}.{self.db}.{self.table_name}')
-        #     print(f'Calling SQL query on {self.project_id}.{self.db}.{self.table_name}')
-
-        #     query = pandas_gbq.read_gbq(self.sql_query, project_id=self.project_id, location=self.location)
-
-        #     logging.info('SQL Query completed')
-        #     print('SQL Query completed')
-
-        # except Exception as e:
-        #     print(f'Unable to run query on {self.project_id}.{self.db}.{self.table_name} due to {e}')
-        #     logging.info(f'Unable to run query on {self.project_id}.{self.db}.{self.table_name} due to {e}')
-
-        # return(query)

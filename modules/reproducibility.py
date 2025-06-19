@@ -58,11 +58,11 @@ def pre_processing(df):
 # Table names can contain letters (uppercase and lowercase), numbers, and underscores (_). 
 # Table names must start with a letter or underscore.
 
-def initial_schema_check(SFTP_folder_name):
+def initial_schema_check(dataset_name):
 
-    SFTP_folder_name = SFTP_folder_name.lower()
+    dataset_name = dataset_name.lower()
   
-    return(SFTP_folder_name)
+    return(dataset_name)
 
 
 # ---------------------------------------------------------
